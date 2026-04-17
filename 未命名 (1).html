@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<title>睡眠效率計算器</title>
+<style>
+body{font-family:Arial,sans-serif;max-width:420px;margin:40px auto;padding:0 20px;}
+h2{text-align:center;color:#333;}
+.box{margin:14px 0;}
+label{display:block;margin-bottom:6px;font-weight:bold;}
+input{width:60px;padding:6px;text-align:center;}
+span{margin:0 4px;}
+button{
+  background:#2c7fb8;color:white;border:none;
+  padding:10px 16px;border-radius:6px;
+  font-size:16px;cursor:pointer;margin:10px 0;
+}
+#result{
+  font-size:18px;font-weight:bold;margin:20px 0;
+  color:#2c7fb8;height:24px;
+}
+.note{color:#555;font-size:14px;line-height:1.5;}
+</style>
+</head>
+<body>
+<h2>睡眠效率計算器</h2>
+
+<div class="box">
+  <label>睡眠時間（共睡了多少小時）</label>
+  <input type="number" id="sleep_h" placeholder="小時" min="0">
+  <span>:</span>
+  <input type="number" id="sleep_m" placeholder="分鐘" min="0" max="59">
+</div>
+
+<div class="box">
+  <label>在床上的時間（在床上多少小時）</label>
+  <input type="number" id="bed_h" placeholder="小時" min="0">
+  <span>:</span>
+  <input type="number" id="bed_m" placeholder="分鐘" min="0" max="59">
+</div>
+
+<button onclick="calc()">計算睡眠效率</button>
+<div id="result"></div>
+
+<div class="note">
+  一般來說，約 85% 或以上的睡眠效率通常被視為較理想，但會因人而異。<br>
+  如對自己的睡眠有疑問或困擾，建議向醫護人員或專業人士查詢。
+</div>
+
+<script>
+function toMinutes(h, m) {
+  return Number(h) * 60 + Number(m);
+}
+function calc() {
+  const bed = toMinutes(
+    document.getElementById('bed_h').value,
+    document.getElementById('bed_m').value
+  );
+  const sleep = toMinutes(
+    document.getElementById('sleep_h').value,
+    document.getElementById('sleep_m').value
+  );
+  if (bed <= 0 || sleep < 0 || sleep > bed) {
+    document.getElementById('result').innerText = '請輸入正確時間';
+    return;
+  }
+  const efficiency = (sleep / bed) * 100;
+  document.getElementById('result').innerText = 
+    '睡眠效率：' + efficiency.toFixed(1) + '%';
+}
+</script>
+</body>
+</html>
