@@ -112,7 +112,7 @@
     <label>中間離床時長（分鐘）</label>
     <div class="row">
       <input type="number" id="middleOutOfBedMinutes" class="min-input" min="0" value="0">
-      <span>（夜間曾經起床離床的總時間，例如上廁所、走動等，可估算）</span>
+      <span>（夜間曾起床離床的總時間，例如上廁所、走動等，可估算）</span>
     </div>
 
     <!-- 清醒時間 -->
@@ -150,11 +150,11 @@
 
   <div class="note">
     計算方式（以分鐘計）：<br>
-    在床總時間 ＝ 離床時間 − 上床時間（若跨午夜會自動 +24 小時）<br>
+    在床總時間 ＝ 離床時間 − 上床時間 − 中間離床時間（若跨午夜會自動 +24 小時）<br>
     睡眠潛伏期 ＝ 入睡時間 − 上床時間<br>
     起床前清醒時間 ＝ 離床時間 − 清醒時間<br>
     <strong>
-      實際睡覺時長 ＝ 在床總時間 − 睡眠潛伏期 − 中間醒來時長 − 中間離床時長 − 起床前清醒時間
+      實際睡覺時長 ＝ 在床總時間 − 睡眠潛伏期 − 中間醒來時長 − 起床前清醒時間
     </strong><br><br>
     睡眠效率 ＝ 實際睡覺時長 ÷ 在床總時間 × 100%<br>
     一般來說，約 85% 或以上的睡眠效率多被視為較理想，惟每人情況不同；如有困擾，建議向專業人員查詢。
@@ -255,10 +255,16 @@
         return;
       }
 
-      // 在床總時間
-      const totalInBed = diffMinutes(bedTime, outOfBedTime);
+      // 原始在床時間（不扣中間離床）
+      const rawInBed = diffMinutes(bedTime, outOfBedTime);
+
+      // 在床總時間 = 原始在床時間 - 中間離床時長
+      const totalInBed = rawInBed - middleOutOfBed;
+
       if (totalInBed <= 0) {
-        errorDiv.textContent = '計算結果顯示在床時間小於或等於 0，請檢查時間輸入是否合理。';
+        errorDiv.textContent =
+          '計算結果顯示「在床總時間」小於或等於 0，' +
+          '請檢查「上床時間、離床時間、中間離床時長」是否合理。';
         return;
       }
 
@@ -268,9 +274,9 @@
       // 起床前清醒時間（最後醒來到離床）
       const finalAwakeDuration = diffMinutes(finalAwakeTime, outOfBedTime);
 
-      // 實際睡眠時間
+      // 實際睡眠時間（不再扣中間離床，因為已在在床時間中扣除）
       const totalSleep =
-        totalInBed - sleepLatency - middleAwake - middleOutOfBed - finalAwakeDuration;
+        totalInBed - sleepLatency - middleAwake - finalAwakeDuration;
 
       if (totalSleep < 0) {
         errorDiv.textContent =
@@ -291,4 +297,5 @@
 
 </body>
 </html>
+
 
