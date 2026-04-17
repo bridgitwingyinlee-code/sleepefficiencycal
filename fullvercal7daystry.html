@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>睡眠效率計算器（七日平均）</title>
+  <style>
+    body {
+      font-family: Arial, "Microsoft JhengHei", "PingFang TC", sans-serif;
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 0 15px;
+      line-height: 1.6;
+    }
+    h1 { text-align: center; }
+    label { display: block; margin-top: 15px; font-weight: bold; }
+    .row {
+      display: flex; align-items: center; gap: 8px;
+      margin-top: 5px; flex-wrap: wrap;
+    }
+    .row select, .row input[type="number"] {
+      padding: 6px; font-size: 14px;
+    }
+    .time-select { width: 70px; }
+    .min-input { width: 80px; text-align: right; }
+    button { margin-top: 20px; padding: 10px 15px; font-size: 16px; cursor: pointer; }
+    .result { margin-top: 25px; font-size: 16px; }
+    .result p { margin: 4px 0; }
+    .result strong { font-size: 18px; }
+    .note { font-size: 13px; color: #555; margin-top: 15px; }
+    .error { color: #c00; margin-top: 10px; }
+  </style>
+</head>
+<body>
+
+  <h1>睡眠效率計算器（七日平均）</h1>
+
+  <p>
+    請用 12 小時制（上午/下午）輸入時間，例如：上午 11:30、下午 11:30。<br>
+    若跨午夜（例如 下午 11:00 ~ 上午 7:00），系統會自動處理。
+  </p>
+
+  <form onsubmit="event.preventDefault(); calculate();">
+    <!-- 上床時間 -->
+    <label>上床時間</label>
+    <div class="row">
+      <select id="bedPeriod" class="time-select"><option value="AM">上午</option><option value="PM">下午</option></select>
+      <select id="bedHour" class="time-select"></select><span>時</span>
+      <input type="number" id="bedMinute" class="min-input" min="0" max="59" value="0"><span>分</span>
+    </div>
+
+    <!-- 入睡時間 -->
+    <label>入睡時間</label>
+    <div class="row">
+      <select id="sleepPeriod" class="time-select"><option value="AM">上午</option><option value="PM">下午</option></select>
+      <select id="sleepHour" class="time-select"></select><span>時</span>
+      <input type="number" id="sleepMinute" class="min-input" min="0" max="59" value="0"><span>分</span>
+    </div>
+
+    <!-- 中間醒來時長 -->
+    <label>中間醒來時長（分鐘）</label>
+    <div class="row"><input type="number" id="middleAwakeMinutes" class="min-input" min="0" value="0"></div>
+
+    <!-- 中間離床時長 -->
+    <label>中間離床時長（分鐘）</label>
+    <div class="row"><input type="number" id="middleOutOfBedMinutes" class="min-input" min="0" value="0"></div>
+
+    <!-- 清醒時間 -->
+    <label>清醒時間</label>
+    <div class="row">
+      <select id="finalPeriod" class="time-select"><option value="AM">上午</option><option value="PM">下午</option></select>
+      <select id="finalHour" class="time-select"></select><span>時</span>
+      <input type="number" id="finalMinute" class="min-input" min="0" max="59" value="0"><span>分</span>
+    </div>
+
+    <!-- 離床時間 -->
+    <label>離床時間</label>
+    <div class="row">
+      <select id="outPeriod" class="time-select"><option value="AM">上午</option><option value="PM">下午</option></select>
+      <select id="outHour" class="time-select"></select><span>時</span>
+      <input type="number" id="outMinute" class="min-input" min="0" max="59" value="0"><span>分</span>
+    </div>
+
+    <button type="submit">計算</button>
+    <button type="button" onclick="resetRecords()">重置紀錄</button>
+  </form>
+
+  <div id="error" class="error"></div>
+  <div class="result" id="result"></div>
+
+  <div class="note">
+    計算方式：<br>
+    在床總時間 ＝ 離床時間 − 上床時間 − 中間離床時間<br>
+    實際睡覺時長 ＝ 在床總時間 − 睡眠潛伏期 − 中間醒來時長 − 起床前清醒時間<br>
+    睡眠效率 ＝ 實際睡覺時長 ÷ 在床總時間 × 100%
+  </div>
+
+  <script>
+    // 初始化 1–12 小時選單
+    function initHourSelect(id) {
+      const sel = document.getElementById(id);
+      for (let h = 1; h <= 12; h++) {
+        const opt = document.createElement('option');
+        opt.value = h; opt.textContent = h;
+        sel.appendChild(opt);
+      }
+    }
+    ['bedHour','sleepHour','finalHour','outHour'].forEach(initHourSelect);
+
+    function time12ToMinutes(period, hour, minute) {
+      hour = Number(hour); minute = Number(minute);
+      let h24 = hour % 12;
+      if (period === 'PM') h24 += 12;
+      return h24 * 60 + minute;
+    }
+    function diffMinutes(start, end) {
+      let d = end - start; if (d < 0) d += 1440; return d;
+    }
+    function formatHM(totalMinutes) {
+      const h = Math.floor(totalMinutes / 60), m = totalMinutes % 60;
+      return h + ' 小時 ' + m + ' 分鐘';
+    }
+
+    let records = [];
+    function calculate() {
+      const errorDiv = document.getElementById('error');
+      const resultDiv = document.getElementById('result');
+      errorDiv.textContent = ''; resultDiv.innerHTML = '';
+
+      const bedTime = time12ToMinutes(bedPeriod.value, bedHour.value, bedMinute.value);
+      const sleepOnset = time12ToMinutes(sleepPeriod.value, sleepHour.value, sleepMinute.value);
+      const finalAwakeTime = time12ToMinutes(finalPeriod.value, finalHour.value, finalMinute.value);
+      const outOfBedTime = time12ToMinutes(outPeriod.value, outHour.value, outMinute.value);
+
+      const middleAwake = Number(middleAwakeMinutes.value) || 0;
+      const middleOutOfBed = Number(middleOutOfBedMinutes.value) || 0;
+
+      const rawInBed = diffMinutes(bedTime, outOfBedTime);
+      const totalInBed = rawInBed - middleOutOfBed;
+      if (totalInBed <= 0) { errorDiv.textContent = '在床總時間小於或等於 0'; return; }
+
+      const sleepLatency = diffMinutes(bedTime, sleepOnset);
+      const finalAwakeDuration = diffMinutes(finalAwakeTime, outOfBedTime);
+      const totalSleep = totalInBed - sleepLatency - middleAwake - finalAwakeDuration;
+      if (totalSleep < 0) { errorDiv.textContent = '實際睡覺時長為負值'; return; }
+
+      const efficiency = (totalSleep / totalInBed) * 100;
+      records.push({ inBed: totalInBed, sleep: totalSleep, eff: efficiency });
+
+      resultDiv.innerHTML = `
+        <p><strong>第 ${records.length} 日結果：</strong></p>
+        <p>在床總時間：${formatHM(totalInBed)}</p>
+        <p>實際睡覺時長：${formatHM(totalSleep)}</p>
+        <p>睡眠效率：${efficiency.toFixed(1)}%</p>
+      `;
+
+      if (records.length === 7) {
+        const avgInBed = records.reduce((s,r)=>s+r.inBed,0)/7;
+        const avgSleep = records.reduce((s,r)=>s+r.sleep,0)/7;
+        const avgEff = records.reduce((s,r)=>s+r.eff,0)/7;
+        resultDiv.innerHTML += `
+          <hr><p><strong>七日平均：</strong
