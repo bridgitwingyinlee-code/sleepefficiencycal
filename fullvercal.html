@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>睡眠效率計算器（12 小時制）</title>
+  <style>
+    body {
+      font-family: Arial, "Microsoft JhengHei", "PingFang TC", sans-serif;
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 0 15px;
+      line-height: 1.6;
+    }
+    h1 {
+      text-align: center;
+    }
+    label {
+      display: block;
+      margin-top: 15px;
+      font-weight: bold;
+    }
+    .row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 5px;
+      flex-wrap: wrap;
+    }
+    .row select,
+    .row input[type="number"] {
+      padding: 6px;
+      font-size: 14px;
+    }
+    .time-select {
+      width: 70px;
+    }
+    .min-input {
+      width: 80px;
+      text-align: right;
+    }
+    button {
+      margin-top: 20px;
+      padding: 10px 15px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    .result {
+      margin-top: 25px;
+      font-size: 16px;
+    }
+    .result p {
+      margin: 4px 0;
+    }
+    .result strong {
+      font-size: 18px;
+    }
+    .note {
+      font-size: 13px;
+      color: #555;
+      margin-top: 15px;
+    }
+    .error {
+      color: #c00;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>睡眠效率計算器（12 小時制）</h1>
+
+  <p>
+    請用 12 小時制（上午/下午）輸入時間，例如：<br>
+    上午 11:30、下午 11:30 等。若跨午夜（例如 下午 11:00 ~ 上午 7:00），系統會自動處理。
+  </p>
+
+  <form onsubmit="event.preventDefault(); calculate();">
+    <!-- 上床時間 -->
+    <label>上床時間</label>
+    <div class="row">
+      <select id="bedPeriod" class="time-select">
+        <option value="AM">上午</option>
+        <option value="PM">下午</option>
+      </select>
+      <select id="bedHour" class="time-select">
+        <!-- 1–12 -->
+      </select>
+      <span>時</span>
+      <input type="number" id="bedMinute" class="min-input" min="0" max="59" value="0">
+      <span>分（開始躺在床上的時間）</span>
+    </div>
+
+    <!-- 入睡時間 -->
+    <label>入睡時間</label>
+    <div class="row">
+      <select id="sleepPeriod" class="time-select">
+        <option value="AM">上午</option>
+        <option value="PM">下午</option>
+      </select>
+      <select id="sleepHour" class="time-select">
+        <!-- 1–12 -->
+      </select>
+      <span>時</span>
+      <input type="number" id="sleepMinute" class="min-input" min="0" max="59" value="0">
+      <span>分（大約睡著的時間）</span>
+    </div>
+
+    <!-- 中間醒來時長 -->
+    <label>中間醒來時長（分鐘）</label>
+    <div class="row">
+      <input type="number" id="middleAwakeMinutes" class="min-input" min="0" value="0">
+      <span>（夜間醒來後合計清醒的時間，可估算）</span>
+    </div>
+
+    <!-- 清醒時間 -->
+    <label>清醒時間</label>
+    <div class="row">
+      <select id="finalPeriod" class="time-select">
+        <option value="AM">上午</option>
+        <option value="PM">下午</option>
+      </select>
+      <select id="finalHour" class="time-select">
+        <!-- 1–12 -->
+      </select>
+      <span>時</span>
+      <input type="number" id="finalMinute" class="min-input" min="0" max="59" value="0">
+      <span>分（最後一次自然醒的時間）</span>
+    </div>
+
+    <!-- 離床時間 -->
+    <label>離床時間</label>
+    <div class="row">
+      <select id="outPeriod" class="time-select">
+        <option value="AM">上午</option>
+        <option value="PM">下午</option>
+      </select>
+      <select id="outHour" class="time-select">
+        <!-- 1–12 -->
+      </select>
+      <span>時</span>
+      <input type="number" id="outMinute" class="min-input" min="0" max="59" value="0">
+      <span>分（真正起床離開床的時間）</span>
+    </div>
+
+    <button type="submit">計算</button>
+  </form>
+
+  <div id="error" class="error"></div>
+
+  <div class="result" id="result"></div>
+
+  <div class="note">
+    計算方式（以分鐘計）：<br>
+    在床總時間 ＝ 離床時間 − 上床時間（若跨午夜會自動 +24 小時）<br>
+    睡眠潛伏期 ＝ 入睡時間 − 上床時間<br>
+    起床前清醒時間 ＝ 離床時間 − 清醒時間<br>
+    <strong>實際睡覺時長 ＝ 在床總時間 − 睡眠潛伏期 − 中間醒來時長 − 起床前清醒時間</strong><br><br>
+    睡眠效率 ＝ 實際睡覺時長 ÷ 在床總時間 × 100%<br>
+    一般來說，約 85% 或以上的睡眠效率多被視為較理想，惟每人情況不同；如有困擾，建議向專業人員查詢。
+  </div>
+
+  <script>
+    // 初始化 1–12 小時選單
+    function initHourSelect(id) {
+      const sel = document.getElementById(id);
+      for (let h = 1; h <= 12; h++) {
+        const opt = document.createElement('option');
+        opt.value = h;
+        opt.textContent = h;
+        sel.appendChild(opt);
+      }
+    }
+
+    ['bedHour', 'sleepHour', 'finalHour', 'outHour'].forEach(initHourSelect);
+
+    // 將 12 小時制(AM/PM + 1–12 + 分) 轉為從當天 00:00 起計的分鐘數 (0–1439)
+    function time12ToMinutes(period, hour, minute) {
+      if (!hour && hour !== 0) return null;
+      hour = Number(hour);
+      minute = Number(minute);
+
+      if (isNaN(hour) || isNaN(minute) || hour < 1 || hour > 12 || minute < 0 || minute > 59) {
+        return null;
+      }
+
+      let h24 = hour % 12;          // 12 點先視為 0
+      if (period === 'PM') {
+        h24 += 12;
+      }
+      // AM 12:xx -> 00:xx；PM 12:xx -> 12:xx
+
+      return h24 * 60 + minute;
+    }
+
+    // 處理跨午夜時間差，例如 23:00 -> 07:00
+    function diffMinutes(start, end) {
+      let d = end - start;
+      if (d < 0) {
+        d += 24 * 60; // 若為負數，視為跨到翌日
+      }
+      return d;
+    }
+
+    function formatHM(totalMinutes) {
+      const h = Math.floor(totalMinutes / 60);
+      const m = totalMinutes % 60;
+      return h + ' 小時 ' + m + ' 分鐘';
+    }
+
+    function calculate() {
+      const errorDiv = document.getElementById('error');
+      const resultDiv = document.getElementById('result');
+      errorDiv.textContent = '';
+      resultDiv.innerHTML = '';
+
+      // 讀取輸入
+      const bedPeriod = document.getElementById('bedPeriod').value;
+      const bedHour   = document.getElementById('bedHour').value;
+      const bedMinute = document.getElementById('bedMinute').value;
+
+      const sleepPeriod = document.getElementById('sleepPeriod').value;
+      const sleepHour   = document.getElementById('sleepHour').value;
+      const sleepMinute = document.getElementById('sleepMinute').value;
+
+      const middleAwakeStr = document.getElementById('middleAwakeMinutes').value;
+
+      const finalPeriod = document.getElementById('finalPeriod').value;
+      const finalHour   = document.getElementById('finalHour').value;
+      const finalMinute = document.getElementById('finalMinute').value;
+
+      const outPeriod = document.getElementById('outPeriod').value;
+      const outHour   = document.getElementById('outHour').value;
+      const outMinute = document.getElementById('outMinute').value;
+
+      // 轉成分鐘（0–1439）
+      const bedTime        = time12ToMinutes(bedPeriod, bedHour, bedMinute);
+      const sleepOnset     = time12ToMinutes(sleepPeriod, sleepHour, sleepMinute);
+      const finalAwakeTime = time12ToMinutes(finalPeriod, finalHour, finalMinute);
+      const outOfBedTime   = time12ToMinutes(outPeriod, outHour, outMinute);
+      const middleAwake    = middleAwakeStr === '' ? 0 : Number(middleAwakeStr);
+
+      if (
+        bedTime === null ||
+        sleepOnset === null ||
+        finalAwakeTime === null ||
+        outOfBedTime === null ||
+        isNaN(middleAwake) ||
+        middleAwake < 0
+      ) {
+        errorDiv.textContent = '請確認所有時間與「中間醒來時長」均已正確填寫。';
+        return;
+      }
+
+      // 在床總時間
+      const totalInBed = diffMinutes(bedTime, outOfBedTime);
+      if (totalInBed <= 0) {
+        errorDiv.textContent = '計算結果顯示在床時間小於或等於 0，請檢查時間輸入是否合理。';
+        return;
+      }
+
+      // 睡眠潛伏期（上床至入睡）
+      const sleepLatency = diffMinutes(bedTime, sleepOnset);
+
+      // 起床前清醒時間（最後醒來到離床）
+      const finalAwakeDuration = diffMinutes(finalAwakeTime, outOfBedTime);
+
+      // 實際睡眠時間
+      const totalSleep = totalInBed - sleepLatency - middleAwake - finalAwakeDuration;
+
+      if (totalSleep < 0) {
+        errorDiv.textContent =
+          '根據輸入數據，計算出的實際睡覺時長為負值，' +
+          '可能代表「上床時間、入睡時間、中間醒來時長、清醒時間、離床時間」之間有矛盾，請重新檢查。';
+        return;
+      }
+
+      const efficiency = (totalSleep / totalInBed) * 100;
+
+      resultDiv.innerHTML = `
+        <p><strong>在床總時間：</strong> ${formatHM(totalInBed)}</p>
+        <p><strong>實際睡覺時長：</strong> ${formatHM(totalSleep)}</p>
+        <p><strong>睡眠效率：</strong> ${efficiency.toFixed(1)}%</p>
+      `;
+    }
+  </script>
+
+</body>
+</html>
