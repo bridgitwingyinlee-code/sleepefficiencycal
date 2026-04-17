@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+[<!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
@@ -123,7 +123,7 @@
       const efficiency = (totalSleepMinutes / totalBedMinutes) * 100;
       resultDiv.textContent = '你的睡眠效率為：' + efficiency.toFixed(1) + '%';
     }
-  </script>
+  </script>](https://github.com/bridgitwingyinlee-code/sleepefficiencycal.git)
 
 </body>
 </html>
