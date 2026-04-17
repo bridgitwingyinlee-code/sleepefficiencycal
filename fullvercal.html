@@ -82,9 +82,7 @@
         <option value="AM">上午</option>
         <option value="PM">下午</option>
       </select>
-      <select id="bedHour" class="time-select">
-        <!-- 1–12 -->
-      </select>
+      <select id="bedHour" class="time-select"></select>
       <span>時</span>
       <input type="number" id="bedMinute" class="min-input" min="0" max="59" value="0">
       <span>分（開始躺在床上的時間）</span>
@@ -97,9 +95,7 @@
         <option value="AM">上午</option>
         <option value="PM">下午</option>
       </select>
-      <select id="sleepHour" class="time-select">
-        <!-- 1–12 -->
-      </select>
+      <select id="sleepHour" class="time-select"></select>
       <span>時</span>
       <input type="number" id="sleepMinute" class="min-input" min="0" max="59" value="0">
       <span>分（大約睡著的時間）</span>
@@ -109,7 +105,14 @@
     <label>中間醒來時長（分鐘）</label>
     <div class="row">
       <input type="number" id="middleAwakeMinutes" class="min-input" min="0" value="0">
-      <span>（夜間醒來後合計清醒的時間，可估算）</span>
+      <span>（夜間醒來後合計清醒在床上的時間，可估算）</span>
+    </div>
+
+    <!-- 中間離床時長 -->
+    <label>中間離床時長（分鐘）</label>
+    <div class="row">
+      <input type="number" id="middleOutOfBedMinutes" class="min-input" min="0" value="0">
+      <span>（夜間曾經起床離床的總時間，例如上廁所、走動等，可估算）</span>
     </div>
 
     <!-- 清醒時間 -->
@@ -119,9 +122,7 @@
         <option value="AM">上午</option>
         <option value="PM">下午</option>
       </select>
-      <select id="finalHour" class="time-select">
-        <!-- 1–12 -->
-      </select>
+      <select id="finalHour" class="time-select"></select>
       <span>時</span>
       <input type="number" id="finalMinute" class="min-input" min="0" max="59" value="0">
       <span>分（最後一次自然醒的時間）</span>
@@ -134,9 +135,7 @@
         <option value="AM">上午</option>
         <option value="PM">下午</option>
       </select>
-      <select id="outHour" class="time-select">
-        <!-- 1–12 -->
-      </select>
+      <select id="outHour" class="time-select"></select>
       <span>時</span>
       <input type="number" id="outMinute" class="min-input" min="0" max="59" value="0">
       <span>分（真正起床離開床的時間）</span>
@@ -154,7 +153,9 @@
     在床總時間 ＝ 離床時間 − 上床時間（若跨午夜會自動 +24 小時）<br>
     睡眠潛伏期 ＝ 入睡時間 − 上床時間<br>
     起床前清醒時間 ＝ 離床時間 − 清醒時間<br>
-    <strong>實際睡覺時長 ＝ 在床總時間 − 睡眠潛伏期 − 中間醒來時長 − 起床前清醒時間</strong><br><br>
+    <strong>
+      實際睡覺時長 ＝ 在床總時間 − 睡眠潛伏期 − 中間醒來時長 − 中間離床時長 − 起床前清醒時間
+    </strong><br><br>
     睡眠效率 ＝ 實際睡覺時長 ÷ 在床總時間 × 100%<br>
     一般來說，約 85% 或以上的睡眠效率多被視為較理想，惟每人情況不同；如有困擾，建議向專業人員查詢。
   </div>
@@ -173,7 +174,7 @@
 
     ['bedHour', 'sleepHour', 'finalHour', 'outHour'].forEach(initHourSelect);
 
-    // 將 12 小時制(AM/PM + 1–12 + 分) 轉為從當天 00:00 起計的分鐘數 (0–1439)
+    // 12 小時制轉分鐘 (0–1439)
     function time12ToMinutes(period, hour, minute) {
       if (!hour && hour !== 0) return null;
       hour = Number(hour);
@@ -183,7 +184,7 @@
         return null;
       }
 
-      let h24 = hour % 12;          // 12 點先視為 0
+      let h24 = hour % 12; // 12 點先視為 0
       if (period === 'PM') {
         h24 += 12;
       }
@@ -222,7 +223,8 @@
       const sleepHour   = document.getElementById('sleepHour').value;
       const sleepMinute = document.getElementById('sleepMinute').value;
 
-      const middleAwakeStr = document.getElementById('middleAwakeMinutes').value;
+      const middleAwakeStr     = document.getElementById('middleAwakeMinutes').value;
+      const middleOutOfBedStr  = document.getElementById('middleOutOfBedMinutes').value;
 
       const finalPeriod = document.getElementById('finalPeriod').value;
       const finalHour   = document.getElementById('finalHour').value;
@@ -237,17 +239,19 @@
       const sleepOnset     = time12ToMinutes(sleepPeriod, sleepHour, sleepMinute);
       const finalAwakeTime = time12ToMinutes(finalPeriod, finalHour, finalMinute);
       const outOfBedTime   = time12ToMinutes(outPeriod, outHour, outMinute);
+
       const middleAwake    = middleAwakeStr === '' ? 0 : Number(middleAwakeStr);
+      const middleOutOfBed = middleOutOfBedStr === '' ? 0 : Number(middleOutOfBedStr);
 
       if (
         bedTime === null ||
         sleepOnset === null ||
         finalAwakeTime === null ||
         outOfBedTime === null ||
-        isNaN(middleAwake) ||
-        middleAwake < 0
+        isNaN(middleAwake) || middleAwake < 0 ||
+        isNaN(middleOutOfBed) || middleOutOfBed < 0
       ) {
-        errorDiv.textContent = '請確認所有時間與「中間醒來時長」均已正確填寫。';
+        errorDiv.textContent = '請確認所有時間與「中間醒來時長」、「中間離床時長」均已正確填寫。';
         return;
       }
 
@@ -265,12 +269,13 @@
       const finalAwakeDuration = diffMinutes(finalAwakeTime, outOfBedTime);
 
       // 實際睡眠時間
-      const totalSleep = totalInBed - sleepLatency - middleAwake - finalAwakeDuration;
+      const totalSleep =
+        totalInBed - sleepLatency - middleAwake - middleOutOfBed - finalAwakeDuration;
 
       if (totalSleep < 0) {
         errorDiv.textContent =
           '根據輸入數據，計算出的實際睡覺時長為負值，' +
-          '可能代表「上床時間、入睡時間、中間醒來時長、清醒時間、離床時間」之間有矛盾，請重新檢查。';
+          '可能代表「上床時間、入睡時間、中間醒來時長、中間離床時長、清醒時間、離床時間」之間有矛盾，請重新檢查。';
         return;
       }
 
@@ -286,3 +291,4 @@
 
 </body>
 </html>
+
