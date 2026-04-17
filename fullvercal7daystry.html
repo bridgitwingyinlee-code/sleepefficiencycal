@@ -2,96 +2,417 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
-  <title>睡眠效率計算器（七日平均）</title>
+  <title>七天睡眠效率計算器（12 小時制）</title>
   <style>
     body {
       font-family: Arial, "Microsoft JhengHei", "PingFang TC", sans-serif;
-      max-width: 800px;
+      max-width: 980px;
       margin: 40px auto;
       padding: 0 15px;
       line-height: 1.6;
     }
-    h1 { text-align: center; }
-    label { display: block; margin-top: 15px; font-weight: bold; }
-    .row {
-      display: flex; align-items: center; gap: 8px;
-      margin-top: 5px; flex-wrap: wrap;
+    h1 {
+      text-align: center;
     }
-    .row select, .row input[type="number"] {
-      padding: 6px; font-size: 14px;
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+      font-size: 13px;
     }
-    .time-select { width: 70px; }
-    .min-input { width: 80px; text-align: right; }
-    button { margin-top: 20px; padding: 10px 15px; font-size: 16px; cursor: pointer; }
-    .result { margin-top: 25px; font-size: 16px; }
-    .result p { margin: 4px 0; }
-    .result strong { font-size: 18px; }
-    .note { font-size: 13px; color: #555; margin-top: 15px; }
-    .error { color: #c00; margin-top: 10px; }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 4px;
+      text-align: center;
+      vertical-align: middle;
+    }
+    th {
+      background: #f5f5f5;
+    }
+    select,
+    input[type="number"] {
+      padding: 3px;
+      font-size: 12px;
+      box-sizing: border-box;
+    }
+    .time-select {
+      width: 60px;
+    }
+    .min-input {
+      width: 55px;
+      text-align: right;
+    }
+    button {
+      margin-top: 15px;
+      padding: 8px 14px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .result {
+      margin-top: 20px;
+      font-size: 14px;
+    }
+    .result p {
+      margin: 3px 0;
+    }
+    .result strong {
+      font-size: 16px;
+    }
+    .error {
+      color: #c00;
+      margin-top: 10px;
+      font-size: 13px;
+    }
+    .note {
+      font-size: 12px;
+      color: #555;
+      margin-top: 15px;
+    }
   </style>
 </head>
 <body>
 
-  <h1>睡眠效率計算器（七日平均）</h1>
+  <h1>七天睡眠效率計算器（12 小時制）</h1>
 
   <p>
-    請用 12 小時制（上午/下午）輸入時間，例如：上午 11:30、下午 11:30。<br>
-    若跨午夜（例如 下午 11:00 ~ 上午 7:00），系統會自動處理。
+    每列代表一天，請用 12 小時制（上午/下午）輸入時間，例如：<br>
+    上午 11:30、下午 11:30 等。若跨午夜（例如 下午 11:00 ~ 上午 7:00），系統會自動處理。
   </p>
 
-  <form onsubmit="event.preventDefault(); calculate();">
-    <!-- 上床時間 -->
-    <label>上床時間</label>
-    <div class="row">
-      <select id="bedPeriod" class="time-select"><option value="AM">上午</option><option value="PM">下午</option></select>
-      <select id="bedHour" class="time-select"></select><span>時</span>
-      <input type="number" id="bedMinute" class="min-input" min="0" max="59" value="0"><span>分</span>
-    </div>
+  <form onsubmit="event.preventDefault(); calculate7Days();">
+    <table>
+      <thead>
+        <tr>
+          <th>日數</th>
+          <th>上床時間</th>
+          <th>入睡時間</th>
+          <th>中間醒來<br>時長（分）</th>
+          <th>中間離床<br>時長（分）</th>
+          <th>清醒時間</th>
+          <th>離床時間</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- 7 days rows -->
+        <!-- day index 1–7 -->
+        <!-- 每格的 id 帶上 day1, day2 ... 方便迴圈 -->
+        <!-- 上床時間：period + hour + minute  -->
+        <!-- 其餘同理 -->
+        <!-- 生成 7 列 -->
+        <!-- 你也可以手動複製/修改，但這裡直接寫好 7 列 -->
+        <tr>
+          <td>第 1 天</td>
+          <td>
+            <select id="day1-bedPeriod" class="time-select">
+              <option value="AM">上午</option>
+              <option value="PM">下午</option>
+            </select>
+            <select id="day1-bedHour" class="time-select"></select>
+            <input type="number" id="day1-bedMinute" class="min-input" min="0" max="59" value="0">
+          </td>
+          <td>
+            <select id="day1-sleepPeriod" class="time-select">
+              <option value="AM">上午</option>
+              <option value="PM">下午</option>
+            </select>
+            <select id="day1-sleepHour" class="time-select"></select>
+            <input type="number" id="day1-sleepMinute" class="min-input" min="0" max="59" value="0">
+          </td>
+          <td>
+            <input type="number" id="day1-middleAwakeMinutes" class="min-input" min="0" value="0">
+          </td>
+          <td>
+            <input type="number" id="day1-middleOutOfBedMinutes" class="min-input" min="0" value="0">
+          </td>
+          <td>
+            <select id="day1-finalPeriod" class="time-select">
+              <option value="AM">上午</option>
+              <option value="PM">下午</option>
+            </select>
+            <select id="day1-finalHour" class="time-select"></select>
+            <input type="number" id="day1-finalMinute" class="min-input" min="0" max="59" value="0">
+          </td>
+          <td>
+            <select id="day1-outPeriod" class="time-select">
+              <option value="AM">上午</option>
+              <option value="PM">下午</option>
+            </select>
+            <select id="day1-outHour" class="time-select"></select>
+            <input type="number" id="day1-outMinute" class="min-input" min="0" max="59" value="0">
+          </td>
+        </tr>
 
-    <!-- 入睡時間 -->
-    <label>入睡時間</label>
-    <div class="row">
-      <select id="sleepPeriod" class="time-select"><option value="AM">上午</option><option value="PM">下午</option></select>
-      <select id="sleepHour" class="time-select"></select><span>時</span>
-      <input type="number" id="sleepMinute" class="min-input" min="0" max="59" value="0"><span>分</span>
-    </div>
+        <tr>
+          <td>第 2 天</td>
+          <td>
+            <select id="day2-bedPeriod" class="time-select">
+              <option value="AM">上午</option>
+              <option value="PM">下午</option>
+            </select>
+            <select id="day2-bedHour" class="time-select"></select>
+            <input type="number" id="day2-bedMinute" class="min-input" min="0" max="59" value="0">
+          </td>
+          <td>
+            <select id="day2-sleepPeriod" class="time-select">
+              <option value="AM">上午</option>
+              <option value="PM">下午</option>
+            </select>
+            <select id="day2-sleepHour" class="time-select"></select>
+            <input type="number" id="day2-sleepMinute" class="min-input" min="0" max="59" value="0">
+          </td>
+          <td>
+            <input type="number" id="day2-middleAwakeMinutes" class="min-input" min="0" value="0">
+          </td>
+          <td>
+            <input type="number" id="day2-middleOutOfBedMinutes" class="min-input" min="0" value="0">
+          </td>
+          <td>
+            <select id="day2-finalPeriod" class="time-select">
+              <option value="AM">上午</option>
+              <option value="PM">下午</option>
+            </select>
+            <select id="day2-finalHour" class="time-select"></select>
+            <input type="number" id="day2-finalMinute" class="min-input" min="0" max="59" value="0">
+          </td>
+          <td>
+            <select id="day2-outPeriod" class="time-select">
+              <option value="AM">上午</option>
+              <option value="PM">下午</option>
+            </select>
+            <select id="day2-outHour" class="time-select"></select>
+            <input type="number" id="day2-outMinute" class="min-input" min="0" max="59" value="0">
+          </td>
+        </tr>
 
-    <!-- 中間醒來時長 -->
-    <label>中間醒來時長（分鐘）</label>
-    <div class="row"><input type="number" id="middleAwakeMinutes" class="min-input" min="0" value="0"></div>
+        <tr>
+          <td>第 3 天</td>
+          <td>
+            <select id="day3-bedPeriod" class="time-select">
+              <option value="AM">上午</option>
+              <option value="PM">下午</option>
+            </select>
+            <select id="day3-bedHour" class="time-select"></select>
+            <input type="number" id="day3-bedMinute" class="min-input" min="0" max="59" value="0">
+          </td>
+          <td>
+            <select id="day3-sleepPeriod" class="time-select">
+              <option value="AM">上午</option>
+              <option value="PM">下午</option>
+            </select>
+            <select id="day3-sleepHour" class="time-select"></select>
+            <input type="number" id="day3-sleepMinute" class="min-input" min="0" max="59" value="0">
+          </td>
+          <td>
+            <input type="number" id="day3-middleAwakeMinutes" class="min-input" min="0" value="0">
+          </td>
+          <td>
+            <input type="number" id="day3-middleOutOfBedMinutes" class="min-input" min="0" value="0">
+          </td>
+          <td>
+            <select id="day3-finalPeriod" class="time-select">
+              <option value="AM">上午</option>
+              <option value="PM">下午</option>
+            </select>
+            <select id="day3-finalHour" class="time-select"></select>
+            <input type="number" id="day3-finalMinute" class="min-input" min="0" max="59" value="0">
+          </td>
+          <td>
+            <select id="day3-outPeriod" class="time-select">
+              <option value="AM">上午</option>
+              <option value="PM">下午</option>
+            </select>
+            <select id="day3-outHour" class="time-select"></select>
+            <input type="number" id="day3-outMinute" class="min-input" min="0" max="59" value="0">
+          </td>
+        </tr>
 
-    <!-- 中間離床時長 -->
-    <label>中間離床時長（分鐘）</label>
-    <div class="row"><input type="number" id="middleOutOfBedMinutes" class="min-input" min="0" value="0"></div>
+        <tr>
+          <td>第 4 天</td>
+          <td>
+            <select id="day4-bedPeriod" class="time-select">
+              <option value="AM">上午</option>
+              <option value="PM">下午</option>
+            </select>
+            <select id="day4-bedHour" class="time-select"></select>
+            <input type="number" id="day4-bedMinute" class="min-input" min="0" max="59" value="0">
+          </td>
+          <td>
+            <select id="day4-sleepPeriod" class="time-select">
+              <option value="AM">上午</option>
+              <option value="PM">下午</option>
+            </select>
+            <select id="day4-sleepHour" class="time-select"></select>
+            <input type="number" id="day4-sleepMinute" class="min-input" min="0" max="59" value="0">
+          </td>
+          <td>
+            <input type="number" id="day4-middleAwakeMinutes" class="min-input" min="0" value="0">
+          </td>
+          <td>
+            <input type="number" id="day4-middleOutOfBedMinutes" class="min-input" min="0" value="0">
+          </td>
+          <td>
+            <select id="day4-finalPeriod" class="time-select">
+              <option value="AM">上午</option>
+              <option value="PM">下午</option>
+            </select>
+            <select id="day4-finalHour" class="time-select"></select>
+            <input type="number" id="day4-finalMinute" class="min-input" min="0" max="59" value="0">
+          </td>
+          <td>
+            <select id="day4-outPeriod" class="time-select">
+              <option value="AM">上午</option>
+              <option value="PM">下午</option>
+            </select>
+            <select id="day4-outHour" class="time-select"></select>
+            <input type="number" id="day4-outMinute" class="min-input" min="0" max="59" value="0">
+          </td>
+        </tr>
 
-    <!-- 清醒時間 -->
-    <label>清醒時間</label>
-    <div class="row">
-      <select id="finalPeriod" class="time-select"><option value="AM">上午</option><option value="PM">下午</option></select>
-      <select id="finalHour" class="time-select"></select><span>時</span>
-      <input type="number" id="finalMinute" class="min-input" min="0" max="59" value="0"><span>分</span>
-    </div>
+        <tr>
+          <td>第 5 天</td>
+          <td>
+            <select id="day5-bedPeriod" class="time-select">
+              <option value="AM">上午</option>
+              <option value="PM">下午</option>
+            </select>
+            <select id="day5-bedHour" class="time-select"></select>
+            <input type="number" id="day5-bedMinute" class="min-input" min="0" max="59" value="0">
+          </td>
+          <td>
+            <select id="day5-sleepPeriod" class="time-select">
+              <option value="AM">上午</option>
+              <option value="PM">下午</option>
+            </select>
+            <select id="day5-sleepHour" class="time-select"></select>
+            <input type="number" id="day5-sleepMinute" class="min-input" min="0" max="59" value="0">
+          </td>
+          <td>
+            <input type="number" id="day5-middleAwakeMinutes" class="min-input" min="0" value="0">
+          </td>
+          <td>
+            <input type="number" id="day5-middleOutOfBedMinutes" class="min-input" min="0" value="0">
+          </td>
+          <td>
+            <select id="day5-finalPeriod" class="time-select">
+              <option value="AM">上午</option>
+              <option value="PM">下午</option>
+            </select>
+            <select id="day5-finalHour" class="time-select"></select>
+            <input type="number" id="day5-finalMinute" class="min-input" min="0" max="59" value="0">
+          </td>
+          <td>
+            <select id="day5-outPeriod" class="time-select">
+              <option value="AM">上午</option>
+              <option value="PM">下午</option>
+            </select>
+            <select id="day5-outHour" class="time-select"></select>
+            <input type="number" id="day5-outMinute" class="min-input" min="0" max="59" value="0">
+          </td>
+        </tr>
 
-    <!-- 離床時間 -->
-    <label>離床時間</label>
-    <div class="row">
-      <select id="outPeriod" class="time-select"><option value="AM">上午</option><option value="PM">下午</option></select>
-      <select id="outHour" class="time-select"></select><span>時</span>
-      <input type="number" id="outMinute" class="min-input" min="0" max="59" value="0"><span>分</span>
-    </div>
+        <tr>
+          <td>第 6 天</td>
+          <td>
+            <select id="day6-bedPeriod" class="time-select">
+              <option value="AM">上午</option>
+              <option value="PM">下午</option>
+            </select>
+            <select id="day6-bedHour" class="time-select"></select>
+            <input type="number" id="day6-bedMinute" class="min-input" min="0" max="59" value="0">
+          </td>
+          <td>
+            <select id="day6-sleepPeriod" class="time-select">
+              <option value="AM">上午</option>
+              <option value="PM">下午</option>
+            </select>
+            <select id="day6-sleepHour" class="time-select"></select>
+            <input type="number" id="day6-sleepMinute" class="min-input" min="0" max="59" value="0">
+          </td>
+          <td>
+            <input type="number" id="day6-middleAwakeMinutes" class="min-input" min="0" value="0">
+          </td>
+          <td>
+            <input type="number" id="day6-middleOutOfBedMinutes" class="min-input" min="0" value="0">
+          </td>
+          <td>
+            <select id="day6-finalPeriod" class="time-select">
+              <option value="AM">上午</option>
+              <option value="PM">下午</option>
+            </select>
+            <select id="day6-finalHour" class="time-select"></select>
+            <input type="number" id="day6-finalMinute" class="min-input" min="0" max="59" value="0">
+          </td>
+          <td>
+            <select id="day6-outPeriod" class="time-select">
+              <option value="AM">上午</option>
+              <option value="PM">下午</option>
+            </select>
+            <select id="day6-outHour" class="time-select"></select>
+            <input type="number" id="day6-outMinute" class="min-input" min="0" max="59" value="0">
+          </td>
+        </tr>
 
-    <button type="submit">計算</button>
-    <button type="button" onclick="resetRecords()">重置紀錄</button>
+        <tr>
+          <td>第 7 天</td>
+          <td>
+            <select id="day7-bedPeriod" class="time-select">
+              <option value="AM">上午</option>
+              <option value="PM">下午</option>
+            </select>
+            <select id="day7-bedHour" class="time-select"></select>
+            <input type="number" id="day7-bedMinute" class="min-input" min="0" max="59" value="0">
+          </td>
+          <td>
+            <select id="day7-sleepPeriod" class="time-select">
+              <option value="AM">上午</option>
+              <option value="PM">下午</option>
+            </select>
+            <select id="day7-sleepHour" class="time-select"></select>
+            <input type="number" id="day7-sleepMinute" class="min-input" min="0" max="59" value="0">
+          </td>
+          <td>
+            <input type="number" id="day7-middleAwakeMinutes" class="min-input" min="0" value="0">
+          </td>
+          <td>
+            <input type="number" id="day7-middleOutOfBedMinutes" class="min-input" min="0" value="0">
+          </td>
+          <td>
+            <select id="day7-finalPeriod" class="time-select">
+              <option value="AM">上午</option>
+              <option value="PM">下午</option>
+            </select>
+            <select id="day7-finalHour" class="time-select"></select>
+            <input type="number" id="day7-finalMinute" class="min-input" min="0" max="59" value="0">
+          </td>
+          <td>
+            <select id="day7-outPeriod" class="time-select">
+              <option value="AM">上午</option>
+              <option value="PM">下午</option>
+            </select>
+            <select id="day7-outHour" class="time-select"></select>
+            <input type="number" id="day7-outMinute" class="min-input" min="0" max="59" value="0">
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <button type="submit">計算 7 日數據及平均值</button>
   </form>
 
   <div id="error" class="error"></div>
+
   <div class="result" id="result"></div>
 
   <div class="note">
-    計算方式：<br>
-    在床總時間 ＝ 離床時間 − 上床時間 − 中間離床時間<br>
-    實際睡覺時長 ＝ 在床總時間 − 睡眠潛伏期 − 中間醒來時長 − 起床前清醒時間<br>
-    睡眠效率 ＝ 實際睡覺時長 ÷ 在床總時間 × 100%
+    計算方式（以分鐘計）：<br>
+    在床總時間 ＝ 離床時間 − 上床時間 − 中間離床時間（若跨午夜會自動 +24 小時）<br>
+    睡眠潛伏期 ＝ 入睡時間 − 上床時間<br>
+    起床前清醒時間 ＝ 離床時間 − 清醒時間<br>
+    <strong>
+      實際睡覺時長 ＝ 在床總時間 − 睡眠潛伏期 − 中間醒來時長 − 起床前清醒時間
+    </strong><br><br>
+    睡眠效率 ＝ 實際睡覺時長 ÷ 在床總時間 × 100%<br>
+    平均值為 7 天各項數據總和 ÷ 7（即使某天沒填，也建議填 0 或補完資料，以免影響平均解讀）。
   </div>
 
   <script>
@@ -100,62 +421,184 @@
       const sel = document.getElementById(id);
       for (let h = 1; h <= 12; h++) {
         const opt = document.createElement('option');
-        opt.value = h; opt.textContent = h;
+        opt.value = h;
+        opt.textContent = h;
         sel.appendChild(opt);
       }
     }
-    ['bedHour','sleepHour','finalHour','outHour'].forEach(initHourSelect);
 
+    // 對 7 天所有 hour 下拉選單初始化
+    for (let d = 1; d <= 7; d++) {
+      ['bedHour', 'sleepHour', 'finalHour', 'outHour'].forEach(field => {
+        initHourSelect(`day${d}-${field}`);
+      });
+    }
+
+    // 12 小時制轉分鐘 (0–1439)
     function time12ToMinutes(period, hour, minute) {
-      hour = Number(hour); minute = Number(minute);
-      let h24 = hour % 12;
-      if (period === 'PM') h24 += 12;
+      if (hour === '' || hour === null || minute === '' || minute === null) return null;
+      hour = Number(hour);
+      minute = Number(minute);
+
+      if (isNaN(hour) || isNaN(minute) || hour < 1 || hour > 12 || minute < 0 || minute > 59) {
+        return null;
+      }
+
+      let h24 = hour % 12; // 12 點先視為 0
+      if (period === 'PM') {
+        h24 += 12;
+      }
+      // AM 12:xx -> 00:xx；PM 12:xx -> 12:xx
+
       return h24 * 60 + minute;
     }
+
+    // 處理跨午夜時間差，例如 23:00 -> 07:00
     function diffMinutes(start, end) {
-      let d = end - start; if (d < 0) d += 1440; return d;
+      let d = end - start;
+      if (d < 0) {
+        d += 24 * 60; // 若為負數，視為跨到翌日
+      }
+      return d;
     }
+
     function formatHM(totalMinutes) {
-      const h = Math.floor(totalMinutes / 60), m = totalMinutes % 60;
+      const h = Math.floor(totalMinutes / 60);
+      const m = totalMinutes % 60;
       return h + ' 小時 ' + m + ' 分鐘';
     }
 
-    let records = [];
-    function calculate() {
-      const errorDiv = document.getElementById('error');
-      const resultDiv = document.getElementById('result');
-      errorDiv.textContent = ''; resultDiv.innerHTML = '';
+    function calculateOneDay(dayIndex) {
+      const prefix = `day${dayIndex}-`;
 
-      const bedTime = time12ToMinutes(bedPeriod.value, bedHour.value, bedMinute.value);
-      const sleepOnset = time12ToMinutes(sleepPeriod.value, sleepHour.value, sleepMinute.value);
-      const finalAwakeTime = time12ToMinutes(finalPeriod.value, finalHour.value, finalMinute.value);
-      const outOfBedTime = time12ToMinutes(outPeriod.value, outHour.value, outMinute.value);
+      const bedPeriod = document.getElementById(prefix + 'bedPeriod').value;
+      const bedHour   = document.getElementById(prefix + 'bedHour').value;
+      const bedMinute = document.getElementById(prefix + 'bedMinute').value;
 
-      const middleAwake = Number(middleAwakeMinutes.value) || 0;
-      const middleOutOfBed = Number(middleOutOfBedMinutes.value) || 0;
+      const sleepPeriod = document.getElementById(prefix + 'sleepPeriod').value;
+      const sleepHour   = document.getElementById(prefix + 'sleepHour').value;
+      const sleepMinute = document.getElementById(prefix + 'sleepMinute').value;
 
+      const middleAwakeStr    = document.getElementById(prefix + 'middleAwakeMinutes').value;
+      const middleOutOfBedStr = document.getElementById(prefix + 'middleOutOfBedMinutes').value;
+
+      const finalPeriod = document.getElementById(prefix + 'finalPeriod').value;
+      const finalHour   = document.getElementById(prefix + 'finalHour').value;
+      const finalMinute = document.getElementById(prefix + 'finalMinute').value;
+
+      const outPeriod = document.getElementById(prefix + 'outPeriod').value;
+      const outHour   = document.getElementById(prefix + 'outHour').value;
+      const outMinute = document.getElementById(prefix + 'outMinute').value;
+
+      const bedTime        = time12ToMinutes(bedPeriod, bedHour, bedMinute);
+      const sleepOnset     = time12ToMinutes(sleepPeriod, sleepHour, sleepMinute);
+      const finalAwakeTime = time12ToMinutes(finalPeriod, finalHour, finalMinute);
+      const outOfBedTime   = time12ToMinutes(outPeriod, outHour, outMinute);
+
+      const middleAwake    = middleAwakeStr === '' ? 0 : Number(middleAwakeStr);
+      const middleOutOfBed = middleOutOfBedStr === '' ? 0 : Number(middleOutOfBedStr);
+
+      // 若該天完全沒填（都為空），視為略過，不參與計算
+      if (
+        bedTime === null &&
+        sleepOnset === null &&
+        finalAwakeTime === null &&
+        outOfBedTime === null &&
+        middleAwakeStr === '' &&
+        middleOutOfBedStr === ''
+      ) {
+        return null;
+      }
+
+      if (
+        bedTime === null ||
+        sleepOnset === null ||
+        finalAwakeTime === null ||
+        outOfBedTime === null ||
+        isNaN(middleAwake) || middleAwake < 0 ||
+        isNaN(middleOutOfBed) || middleOutOfBed < 0
+      ) {
+        throw new Error(`第 ${dayIndex} 天：時間或時長輸入有誤`);
+      }
+
+      // 原始在床時間（不扣中間離床）
       const rawInBed = diffMinutes(bedTime, outOfBedTime);
-      const totalInBed = rawInBed - middleOutOfBed;
-      if (totalInBed <= 0) { errorDiv.textContent = '在床總時間小於或等於 0'; return; }
 
+      // 在床總時間 = 原始在床時間 - 中間離床時長
+      const totalInBed = rawInBed - middleOutOfBed;
+      if (totalInBed <= 0) {
+        throw new Error(`第 ${dayIndex} 天：在床總時間小於或等於 0，請檢查時間與中間離床時長`);
+      }
+
+      // 睡眠潛伏期（上床至入睡）
       const sleepLatency = diffMinutes(bedTime, sleepOnset);
+      // 起床前清醒時間（最後醒來到離床）
       const finalAwakeDuration = diffMinutes(finalAwakeTime, outOfBedTime);
+
+      // 實際睡眠時間
       const totalSleep = totalInBed - sleepLatency - middleAwake - finalAwakeDuration;
-      if (totalSleep < 0) { errorDiv.textContent = '實際睡覺時長為負值'; return; }
+      if (totalSleep < 0) {
+        throw new Error(`第 ${dayIndex} 天：實際睡覺時長為負值，請檢查各時間與時長`);
+      }
 
       const efficiency = (totalSleep / totalInBed) * 100;
-      records.push({ inBed: totalInBed, sleep: totalSleep, eff: efficiency });
+
+      return {
+        totalInBed,
+        totalSleep,
+        efficiency
+      };
+    }
+
+    function calculate7Days() {
+      const errorDiv = document.getElementById('error');
+      const resultDiv = document.getElementById('result');
+      errorDiv.textContent = '';
+      resultDiv.innerHTML = '';
+
+      let sumInBed = 0;
+      let sumSleep = 0;
+      let sumEfficiency = 0;
+      let validDays = 0;
+
+      try {
+        for (let d = 1; d <= 7; d++) {
+          const dayResult = calculateOneDay(d);
+          if (!dayResult) continue; // 該天空白，略過
+
+          sumInBed     += dayResult.totalInBed;
+          sumSleep     += dayResult.totalSleep;
+          sumEfficiency += dayResult.efficiency;
+          validDays++;
+        }
+      } catch (e) {
+        errorDiv.textContent = e.message;
+        return;
+      }
+
+      if (validDays === 0) {
+        errorDiv.textContent = '七天資料皆為空，請至少填寫一天的數據。';
+        return;
+      }
+
+      const avgInBed       = sumInBed / validDays;
+      const avgSleep       = sumSleep / validDays;
+      const avgEfficiency  = sumEfficiency / validDays;
 
       resultDiv.innerHTML = `
-        <p><strong>第 ${records.length} 日結果：</strong></p>
-        <p>在床總時間：${formatHM(totalInBed)}</p>
-        <p>實際睡覺時長：${formatHM(totalSleep)}</p>
-        <p>睡眠效率：${efficiency.toFixed(1)}%</p>
+        <p><strong>有效天數：</strong>${validDays} 天</p>
+        <p><strong>總在床時間（七天合計）：</strong>${formatHM(sumInBed)}</p>
+        <p><strong>總實際睡覺時長（七天合計）：</strong>${formatHM(sumSleep)}</p>
+        <p><strong>平均在床時間（每晚）：</strong>${formatHM(Math.round(avgInBed))}</p>
+        <p><strong>平均實際睡覺時長（每晚）：</strong>${formatHM(Math.round(avgSleep))}</p>
+        <p><strong>平均睡眠效率：</strong>${avgEfficiency.toFixed(1)}%</p>
+        <p style="margin-top:6px;font-size:12px;color:#666;">
+          註：平均值只會以有填寫且計算成功的天數為分母（有效天數），
+          若有幾天完全空白則不會影響平均值。
+        </p>
       `;
+    }
+  </script>
 
-      if (records.length === 7) {
-        const avgInBed = records.reduce((s,r)=>s+r.inBed,0)/7;
-        const avgSleep = records.reduce((s,r)=>s+r.sleep,0)/7;
-        const avgEff = records.reduce((s,r)=>s+r.eff,0)/7;
-        resultDiv.innerHTML += `
-          <hr><p><strong>七日平均：</strong
+</body>
+</html>
